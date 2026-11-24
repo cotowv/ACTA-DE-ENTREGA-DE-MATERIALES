@@ -1,0 +1,11 @@
+{
+  "name": "Entrega de Materiales · Cochamó",
+  "short_name": "Entregas",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f4c81",
+  "theme_color": "#0f4c81",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
