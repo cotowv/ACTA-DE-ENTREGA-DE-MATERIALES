@@ -1016,19 +1016,17 @@ function construirPDF(s){
     doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(120,132,144);doc.text('RUT '+r+' · '+t,x+bw/2,y+44,{align:'center'});});
   y+=54;
 
-  // Registro fotográfico
-  s.items.forEach(it=>{
-    const cols=2,gap=6,cellW=(W-2*M-gap)/cols,pad=4,capH=6,boxW=cellW-2*pad,boxH=62,cellH=boxH+capH+pad;
-    nl(11+cellH+3);secBar('REGISTRO FOTOGRÁFICO · '+it.n.toUpperCase());
-    it.fotos.forEach((f,j)=>{
-      const col=j%cols;if(col===0)nl(cellH+3);
-      const x=M+col*(cellW+gap),cy=y;doc.setDrawColor(210,218,226);doc.setLineWidth(.3);doc.rect(x,cy,cellW,cellH);
-      const sc=Math.min(boxW/f.w,boxH/f.h),dw=f.w*sc,dh=f.h*sc;
-      try{doc.addImage(f.d,'JPEG',x+pad+(boxW-dw)/2,cy+pad+(boxH-dh)/2,dw,dh,undefined,'FAST');}catch(e){}
-      doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(120,132,144);doc.text('Fotografía '+(j+1),x+cellW/2,cy+cellH-2.2,{align:'center'});
-      if(col===cols-1||j===it.fotos.length-1)y+=cellH+3;
-    });
-    y+=3;
+  // Registro fotográfico: 4 fotos por página (grilla 2×2)
+  const todas=[];s.items.forEach(it=>it.fotos.forEach((f,j)=>todas.push({f,cap:it.n+' · Fotografía '+(j+1)})));
+  const cols=2,gap=8,cellW=(W-2*M-gap)/cols,pad=5,capH=9,boxH=80,cellH=boxH+capH+pad,boxW=cellW-2*pad,rowGap=10;
+  todas.forEach((p,i)=>{
+    if(i%4===0){doc.addPage();y=18;secBar('REGISTRO FOTOGRÁFICO'+(i?' (continuación)':''));y+=2;}
+    const r=Math.floor((i%4)/2),c=i%2,x=M+c*(cellW+gap),cy=y+r*(cellH+rowGap);
+    doc.setDrawColor(210,218,226);doc.setLineWidth(.3);doc.rect(x,cy,cellW,cellH);
+    const sc=Math.min(boxW/p.f.w,boxH/p.f.h),dw=p.f.w*sc,dh=p.f.h*sc;
+    try{doc.addImage(p.f.d,'JPEG',x+pad+(boxW-dw)/2,cy+pad+(boxH-dh)/2,dw,dh,undefined,'FAST');}catch(e){}
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(90,102,114);
+    doc.text(doc.splitTextToSize(p.cap,cellW-6).slice(0,2),x+cellW/2,cy+pad+boxH+4,{align:'center'});
   });
 
   const pages=doc.internal.getNumberOfPages();
