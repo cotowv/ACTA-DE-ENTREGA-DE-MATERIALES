@@ -647,6 +647,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     <div class="field"><label for="benef">Beneficiario <span id="benefCount" style="color:var(--ink-3);font-weight:500"></span></label>
       <select class="input" id="benef"><option value="">Seleccione beneficiario…</option></select></div>
     <dl class="info-box" id="benefCard" hidden>
+      <dt>ID</dt><dd id="bId" class="mono"></dd>
       <dt>RUT</dt><dd id="bRut" class="mono"></dd>
       <dt>Sector</dt><dd id="bSec"></dd>
     </dl>
@@ -738,7 +739,7 @@ const ITEMS=[
   {k:"tcc",n:"Tablero CC"},
   {k:"tca",n:"Tablero CA"}
 ];
-const BEN=DATA.map((r,i)=>({i,n:r[1],rut:r[2],s:r[3]})).sort((a,b)=>a.n.localeCompare(b.n,'es'));
+const BEN=DATA.map((r,i)=>({i,id:r[0],n:r[1],rut:r[2],s:r[3]})).sort((a,b)=>a.n.localeCompare(b.n,'es'));
 const RING_C=263.9;
 
 /* ---------- Utilidades ---------- */
@@ -758,6 +759,7 @@ function rutValido(v){const c=limpiarRut(v);if(c.length<8)return false;const b=c
 const fFecha=d=>d.toLocaleDateString('es-CL',{day:'numeric',month:'long',year:'numeric'});
 const fHora=d=>d.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
 const p2=n=>String(n).padStart(2,'0');
+const idDe=b=>(b&&b.id!=null)?String(b.id):'—';
 function listaTxt(a){return a.length<2?a.join(''):a.slice(0,-1).join(', ')+' y '+a[a.length-1];}
 
 /* Descarga: funciona en GitHub Pages y dentro de Claude */
@@ -786,14 +788,14 @@ SECTORES.forEach(s=>$('sector').add(new Option(s+' ('+BEN.filter(b=>b.s===s).len
 function fillBenef(){
   const s=$('sector').value,prev=$('benef').value,sel=$('benef');sel.length=1;
   const list=BEN.filter(b=>!s||b.s===s);
-  list.forEach(b=>sel.add(new Option(b.n+(s?'':' · '+b.s),b.i)));
+  list.forEach(b=>sel.add(new Option(b.n+' · ID '+b.id+(s?'':' · '+b.s),b.i)));
   $('benefCount').textContent='('+list.length+')';
   sel.value=list.some(b=>String(b.i)===prev)?prev:'';onBenef();
 }
 const curB=()=>{const v=$('benef').value;return v===''?null:BEN.find(b=>String(b.i)===v);};
 function onBenef(){
   const b=curB();$('benefCard').hidden=!b;$('benef').classList.remove('bad');
-  if(b){$('bRut').textContent=b.rut||'Sin RUT registrado';$('bSec').textContent=b.s;}
+  if(b){$('bId').textContent=String(b.id);$('bRut').textContent=b.rut||'Sin RUT registrado';$('bSec').textContent=b.s;}
   syncRec();
 }
 $('sector').addEventListener('change',fillBenef);
@@ -895,7 +897,7 @@ function firmaImg(k){const cv=pads[k].cv,o=document.createElement('canvas');o.wi
 /* ---------- Declaración y progreso ---------- */
 function declaracionDe(s){
   const rel=s.rec.rel?` (${s.rec.rel})`:'';
-  return `Con fecha ${s.fechaTxt}, a las ${s.horaTxt} horas, en el sector ${s.ben.s}, en el marco del Proyecto Cochamó, Servicios de Energía Ciudad Luz SpA hace entrega de los siguientes artículos: ${listaTxt(s.items.map(i=>i.n))}, al beneficiario ${s.ben.n}, RUT ${s.ben.rut||'sin registro'}. `+
+  return `Con fecha ${s.fechaTxt}, a las ${s.horaTxt} horas, en el sector ${s.ben.s}, en el marco del Proyecto Cochamó, Servicios de Energía Ciudad Luz SpA hace entrega de los siguientes artículos: ${listaTxt(s.items.map(i=>i.n))}, al beneficiario ${s.ben.n}, ID ${idDe(s.ben)}, RUT ${s.ben.rut||'sin registro'}. `+
     `Recibe ${s.rec.n||'—'}${rel}, RUT ${s.rec.rut||'—'}, y entrega ${s.ent.n||'—'}, RUT ${s.ent.rut||'—'}. `+
     `Quien recibe declara recibir los artículos individualizados en las condiciones registradas en las fotografías adjuntas.`;
 }
@@ -903,7 +905,7 @@ function borrador(){
   const b=curB();
   return {fechaTxt:fFecha(ahora),horaTxt:fHora(ahora),
     ent:{n:$('entNombre').value,rut:$('entRut').value},
-    ben:b?{n:b.n,rut:b.rut,s:b.s}:null,
+    ben:b?{id:b.id,n:b.n,rut:b.rut,s:b.s}:null,
     rec:{n:$('recNombre').value.trim(),rut:formatearRut($('recRut').value),rel:$('mismo').checked?'':$('recRel').value.trim(),mismo:$('mismo').checked},
     items:marcados().map(it=>({n:it.n,fotos:fotos[it.k]})),obs:$('obs').value.trim()};
 }
@@ -944,7 +946,7 @@ function renderSaved(){
   if(!arr.length){$('savedList').innerHTML='<div class="empty">Aún no hay entregas guardadas.</div>';return;}
   $('savedList').innerHTML=arr.map((s,i)=>`<div class="saved-row">
       <div class="avatar">${esc((s.ben.n||'?')[0].toUpperCase())}</div>
-      <div class="info"><b>${esc(s.ben.n)}</b><span>${esc(s.fechaTxt)} ${esc(s.horaTxt)} · ${esc(s.ben.s)} · ${esc(s.ent.n)}</span></div>
+      <div class="info"><b>${esc(s.ben.n)}</b><span>ID ${esc(idDe(s.ben))} · ${esc(s.fechaTxt)} ${esc(s.horaTxt)} · ${esc(s.ben.s)} · ${esc(s.ent.n)}</span></div>
       <div class="acts"><button class="mini" data-pdf="${i}">PDF</button><button class="mini danger" data-borrar="${i}">✕</button></div>
     </div>`).join('');
 }
@@ -984,7 +986,7 @@ function construirPDF(s){
   y=34;doc.setTextColor(28,39,51);
 
   secBar('DATOS DE LA ENTREGA');
-  const filas=[['Sector',s.ben.s],['Beneficiario',s.ben.n],['RUT beneficiario',s.ben.rut||'Sin registro'],
+  const filas=[['Sector',s.ben.s],['Beneficiario',s.ben.n],['ID beneficiario',idDe(s.ben)],['RUT beneficiario',s.ben.rut||'Sin registro'],
     ['Recibe',s.rec.n+(s.rec.mismo?' (el mismo beneficiario)':s.rec.rel?' ('+s.rec.rel+')':'')],['RUT recibe',s.rec.rut],
     ['Entrega',s.ent.n+' · Servicios de Energía Ciudad Luz SpA'],['RUT entrega',s.ent.rut]];
   filas.forEach(([k,v])=>{const l=doc.splitTextToSize(v||'—',W-2*M-44);nl(l.length*4.8+1);
@@ -1033,7 +1035,7 @@ function construirPDF(s){
   for(let p=1;p<=pages;p++){doc.setPage(p);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(140,150,160);
     doc.text('Proyecto Cochamó — Acta de entrega '+s.folio+'   |   Página '+p+' de '+pages,W/2,H-8,{align:'center'});}
   const ap=s.ben.n.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9]+/g,'_');
-  return {blob:doc.output('blob'),name:'Acta_Entrega_'+s.ben.s.replace(/\s+/g,'_')+'_'+ap+'_'+s.folio.split('-')[1]+'.pdf'};
+  return {blob:doc.output('blob'),name:'Acta_Entrega_'+s.ben.s.replace(/\s+/g,'_')+'_ID'+idDe(s.ben)+'_'+ap+'_'+s.folio.split('-')[1]+'.pdf'};
 }
 
 /* ---------- Guardar y generar ---------- */
